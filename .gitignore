@@ -14,7 +14,6 @@
 *.o.*
 *.a
 *.s
-*.ko
 *.so
 *.so.dbg
 *.mod.c
@@ -25,7 +24,6 @@
 modules.builtin
 !drivers/mfd/cg2900/modules.order
 *.elf
-*.bin
 *.gz
 *.bz2
 *.lzma
