@@ -1,10 +1,8 @@
 #!/sbin/busybox sh
 #
-## Save orig. path
-_PATH="$PATH"
-export PATH=/sbin
 
 cd /
+
 busybox mount -t proc proc /proc
 busybox mount -t sysfs sysfs /sys
 
@@ -12,23 +10,7 @@ busybox mount -t sysfs sysfs /sys
 busybox date >/boot-debug.log
 exec >>/boot-debug.log 2>&1
 
-## Bootmode
-echo "Checking BootMode ..." >> /boot-debug.log
-BMODE=System
-
-## Recovery Boot
-if grep -q bootmode=2 /proc/cmdline ; then
-  rm /init.rc
-  cp /recovery.rc /init.rc
-  BMODE=Recovery
-fi
-
-## Low Power Mode
-if grep -q 1 /sys/class/power_supply/battery/batt_lp_charging ; then
-  rm /init.rc
-  cp /lpm.rc /init.rc
-  BMODE=LowPower
-fi
+echo "Starting initial Boot Setup ..."
 
 ## Create basic devs
 mkdir -p /dev/block
@@ -47,6 +29,23 @@ mknod /dev/block/mmcblk0p11 b 259 3
 mknod /dev/block/mmcblk0p12 b 259 4
 mknod /dev/block/loop0 b 7 0
 
+## Recovery Boot
+if grep -q bootmode=2 /proc/cmdline ; then
+  rm /init.rc
+  cp /recovery.rc /init.rc
+  sed -i 's|found STOCK based System|Recovery BOOT|g' sbin/init.samsung
+  exec /sbin/init.samsung
+fi
+
+## Low Power Mode
+if grep -q 1 /sys/class/power_supply/battery/batt_lp_charging ; then
+  rm /init.rc
+  cp /lpm.rc /init.rc
+  sed -i 's|found STOCK based System|LPM BOOT|g' sbin/init.samsung
+  exec /sbin/init.samsung
+fi
+
+## Check for rom specific strings etc
 busybox mount -t ext4 /dev/block/mmcblk0p9 /system
 
 AOSP=0
@@ -63,33 +62,9 @@ AOSP=0
 
 if [ "$AOSP" == 1 ];
 then
-  BMODE=System-AOSP
-  # Remove Stock rc's
-  rm /default.prop
-  rm /init.goldfish.rc
-  rm /init.rc
-  rm /init.smdk4210.rc
-  rm /init.smdk4210.usb.rc
-  rm /ueventd.rc
-  rm /ueventd.smdk4210.rc
-  # Copy over AOSP rc's
-  cp -ax /res/misc/aosp/* /
-else
-  BMODE=System-Stock
+  rm /sbin/init.samsung
+  mv /sbin/init.cm9 /sbin/init.samsung
 fi;
 
 busybox umount /system
-busybox umount /sys
-busybox umount /proc
-
-busybox date >>/boot-debug.log
-echo "Booting up with BootMode: ${BMODE}" >> /boot-debug.log
-
-## restore old path
-export PATH="${_PATH}"
-rm -rf /dev/*
-
-## remove symlink and execute init
-rm /init
-mv /innt /init
-exec /init
+exec /sbin/init.samsung

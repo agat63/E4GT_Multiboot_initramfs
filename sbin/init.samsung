@@ -1,0 +1,10 @@
+#!/sbin/busybox sh
+#
+echo "found STOCK based System, booting up..."
+
+rm -rf /res/misc/aosp
+
+cd /
+rm /init
+mv /innt /init
+exec /init

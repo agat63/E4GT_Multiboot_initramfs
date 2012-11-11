@@ -1,0 +1,29 @@
+#!/sbin/busybox sh
+#
+echo "found CM9 System, booting up..."
+
+export _PATH="$PATH"
+export PATH=/sbin
+
+cd /
+busybox date >>/boot-debug.log
+exec >>/boot-debug.log 2>&1
+
+## remove stock init files
+rm /init
+rm /innt
+rm /default.prop
+rm /init.goldfish.rc
+rm /init.rc
+rm /init.smdk4210.rc
+rm /init.smdk4210.usb.rc
+rm /ueventd.rc
+rm /ueventd.smdk4210.rc
+
+## copy over cm9 init files to root
+busybox cp -a /res/misc/aosp/* /
+
+busybox date >>/boot-debug.log
+busybox rm -rf /res/misc/aosp /dev/*
+export PATH="${_PATH}"
+exec /init
